@@ -1,13 +1,6 @@
-# AWS Certified AI Practitioner Exam Simulator - IMPROVED VERSION
+# Sample AWS Certified AI Practitioner Exam Simulator
 
-## 🎯 Key Improvements Made
-
-### 1. **Expanded Question Bank (20x More Content!)**
-   - **Before:** 3 questions per domain × 100 = 300 total questions
-   - **After:** 20 questions per domain × 5 domains = 100+ unique questions
-   - **Result:** Eliminates repetitive scenarios and provides authentic exam variety
-
-### 2. **Real Exam-Style Questions**
+### 1. **Real Exam-Style Questions**
    - Added domain-specific, technically-accurate questions
    - Covers all 5 official AWS AI Practitioner Exam domains:
      - Domain 1: Fundamentals of AI and ML (20 questions)
@@ -16,7 +9,7 @@
      - Domain 4: Guidelines for Responsible AI (20 questions)
      - Domain 5: Security, Compliance, and Operations (20 questions)
 
-### 3. **New Features Added**
+### 2. **New Features Added**
 
 #### 📖 **Practice Mode**
 - Review explanations after every question
@@ -38,46 +31,14 @@
 - See percentage correct for each domain
 - Quick domain jumping for targeted practice
 
-### 4. **Improved UI/UX**
-   - **Better Navigation:** Quick jump buttons for all 5 domains
-   - **Progress Tracking:** Visual progress bar + numeric display
-   - **Stats Panel:** View question count and quiz scores in sidebar
-   - **Mode Toggle:** Easy switch between Practice and Quiz modes
-   - **Cleaner Layout:** Better organized content with dividers
-
-### 5. **Smart Question Generation**
-   - Consistent shuffling (same random seed per question)
-   - No artificial scenario injection (more realistic questions)
-   - Proper option randomization maintaining correct answer tracking
-   - Better option variety within each question
-
 ## 🎓 How to Use
 
 ### Getting Started
 ```bash
-cd C:\Drive D\AI\streamlit_exam
+cd C:\\streamlit_exam
 pip install -r requirements.txt
 streamlit run app.py
 ```
-
-### Practice Mode (Recommended for Learning)
-1. Select "📖 Practice Mode" in the left sidebar
-2. Choose a domain
-3. Answer questions and review explanations
-4. Click Next/Previous or use Quick Jump buttons
-5. No scoring - focus on understanding
-
-### Quiz Mode (Simulate Real Exam)
-1. Select "🎯 Quiz Mode" in the left sidebar
-2. Select a domain
-3. Answer all 20 questions
-4. Your score is tracked in the sidebar
-5. Review results to identify weak areas
-
-### Performance Mode
-1. Select "📊 Performance" to see summary statistics
-2. View scores for all domains you've attempted
-3. Identify which domains need more practice
 
 ## 📋 Exam Domains Coverage
 
@@ -162,7 +123,6 @@ streamlit run app.py
 
 ## 💡 Key Features
 
-✅ **100+ Real Exam Questions** - Based on AWS AI Practitioner exam blueprint
 ✅ **Detailed Explanations** - Learn the "why" behind each answer
 ✅ **Practice + Quiz Modes** - Both learning and assessment experiences
 ✅ **Score Tracking** - Monitor progress by domain
@@ -170,17 +130,6 @@ streamlit run app.py
 ✅ **Progress Indicators** - Visual tracking of completion
 ✅ **No Repetition** - Diverse questions prevent memorization bias
 ✅ **Professional UI** - Clean, modern Streamlit interface
-
-## 🔄 Session State Management
-
-The app maintains:
-- Current domain selection
-- Question index within domain
-- Quiz scores per domain
-- Answered questions tracking
-- Current mode (Practice/Quiz)
-
-All persisted during your session!
 
 ## 📝 Notes
 
@@ -194,5 +143,4 @@ All persisted during your session!
 
 **Version:** 2.0 (Enhanced)
 **Last Updated:** October 2026
-**Creator:** AWS GenAI Exam Prep Team
 
