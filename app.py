@@ -2,6 +2,7 @@ import streamlit as st
 import random
 import json
 from datetime import datetime
+import time
 
 # 1. Page Configuration
 st.set_page_config(page_title="AWS AI Practitioner Exam Simulator", page_icon="☁️", layout="wide")
@@ -324,29 +325,231 @@ DOMAINS_DATA = {
     ]
 }
 
-# 3. Enhanced Question Bank Processing
+# 3. Stronger AWS-style question generation system
+# This creates a larger, harder, more realistic bank with exam-like scenarios and domain weighting.
+HARDER_QUESTION_TEMPLATES = {
+    "Domain 1: Fundamentals of AI and ML": [
+        (
+            "A product team sees a model with 98% training accuracy but only 72% validation accuracy. The most likely root cause is:",
+            ["Overfitting due to poor generalization", "Underfitting due to over-regularization", "Label leakage in validation", "Data drift from feature scaling"],
+            0,
+            "High train accuracy with weak validation performance commonly indicates overfitting."),
+        (
+            "An ML engineer wants the model to focus on the minority class in a heavily imbalanced fraud dataset. Which metric is most useful for comparing classifiers in that setting?",
+            ["F1-score", "Mean absolute error", "R-squared", "Accuracy"],
+            0,
+            "F1-score balances precision and recall, making it better than raw accuracy for imbalanced classification."),
+        (
+            "A team needs to compare multiple models fairly without leaking test performance into model selection. The best practice is:",
+            ["Use a validation set and cross-validation during model selection", "Train on the full dataset and evaluate once", "Use the test set repeatedly for tuning", "Skip validation and rely on training loss"],
+            0,
+            "Validation and cross-validation provide unbiased estimates of generalization before final test evaluation."),
+        (
+            "A feature with a very large magnitude is dominating optimization. The most appropriate corrective action is:",
+            ["Apply feature scaling or normalization", "Increase the learning rate drastically", "Remove all training examples with outliers", "Switch to unsupervised learning"],
+            0,
+            "Scaling helps prevent large-magnitude features from dominating training dynamics."),
+        (
+            "A team wants to interpret which variables contributed most to a prediction. Which model behavior is most directly useful for that purpose?",
+            ["Model explainability and feature importance", "Increasing the number of hidden layers", "Disabling train/test splitting", "Only using more data"],
+            0,
+            "Explainability methods and feature importance help identify drivers of predictions."),
+        (
+            "During hyperparameter tuning, a model performs consistently poorly on both training and validation sets. The model is most likely:",
+            ["Underfitting", "Overfitting", "Drifting", "Mode collapsing"],
+            0,
+            "Underfitting happens when the model is too simple and cannot capture the signal in the data.")
+    ],
+    "Domain 2: Fundamentals of Generative AI": [
+        (
+            "A customer wants a model to answer questions based on the latest internal documents without retraining. The best design is:",
+            ["RAG with a vector store or search index", "Increasing the model temperature to 2.0", "Removing all prompt examples", "Switching to a smaller model"],
+            0,
+            "RAG lets the model retrieve current factual context at inference time instead of relying only on static training knowledge."),
+        (
+            "A chatbot is too verbose and inconsistent across turns. The most direct improvement is to:",
+            ["Reduce temperature and improve system prompt clarity", "Increase context window indiscriminately", "Add more random sampling", "Set top-k to 1 and ignore prompt history"],
+            0,
+            "Lower temperature and clearer prompts usually improve coherence and determinism."),
+        (
+            "A developer wants to sample only the most likely next tokens while still allowing some diversity. The best parameter to tune is:",
+            ["Top-p or nucleus sampling", "Learning rate", "Batch size", "Dropout rate"],
+            0,
+            "Top-p controls cumulative probability mass for token selection and balances diversity with quality."),
+        (
+            "A model repeatedly produces confident statements that are not supported by the source material. This is known as:",
+            ["Hallucination", "Data leakage", "Model drift", "Prompt injection"],
+            0,
+            "Hallucination refers to plausible but incorrect content generated as if it were fact."),
+        (
+            "A team wants a language model to perform a task with only a brief instruction and no task-specific training. This is best described as:",
+            ["Zero-shot learning", "Unsupervised clustering", "Linear regression", "Gradient boosting"],
+            0,
+            "Zero-shot learning asks the model to perform a task without task-specific examples."),
+        (
+            "In a transformer model, attention is primarily used to:",
+            ["Weight the importance of different tokens when producing output", "Reduce the vocabulary size", "Copy the input exactly", "Optimize the loss function in a single step"],
+            0,
+            "Attention helps the model determine which input tokens are most relevant at each step."),
+    ],
+    "Domain 3: Applications of AWS AI Services": [
+        (
+            "A company needs to extract tables, key-value data, and line items from scanned invoices in an automated workflow. Which AWS service is the best fit?",
+            ["Amazon Textract", "Amazon Polly", "Amazon Lex", "Amazon Comprehend"],
+            0,
+            "Textract is designed to extract structured information from documents and forms."),
+        (
+            "A call center plans to build an IVR and conversational bot with speech input. Which service provides the conversational interface?",
+            ["Amazon Lex", "Amazon Forecast", "Amazon GuardDuty", "Amazon Translate"],
+            0,
+            "Lex is AWS's service for building conversational interfaces and chatbots."),
+        (
+            "An enterprise wants to search across thousands of product manuals and policy documents using natural-language questions. The best service is:",
+            ["Amazon Kendra", "Amazon Bedrock", "Amazon Rekognition", "Amazon Personalize"],
+            0,
+            "Kendra is optimized for enterprise search over documents using ML-powered relevance."),
+        (
+            "A company needs to detect unusual behavior in metrics for inventory sensors and forecast maintenance issues. Which service is most appropriate?",
+            ["Amazon Lookout for Equipment or Lookout for Metrics", "Amazon Polly", "Amazon Connect", "Amazon SageMaker Ground Truth"],
+            0,
+            "Lookout services are designed to detect anomalies and monitor operational health using ML."),
+        (
+            "A startup wants to access foundation models through a managed API without building and hosting models themselves. Which AWS service should they use?",
+            ["Amazon Bedrock", "Amazon S3", "Amazon Athena", "Amazon Route 53"],
+            0,
+            "Bedrock offers managed access to foundation models through APIs."),
+        (
+            "A healthcare team wants to identify anomalies in CT scans and prior patient records. Which combination best aligns with AWS AI capabilities?",
+            ["Medical image services with ML-powered analysis and document extraction", "Only Amazon EC2 and RDS", "AWS WAF and CloudFront", "Simple email notifications"],
+            0,
+            "AWS AI services can support medical workflows with image analysis and document understanding."),
+    ],
+    "Domain 4: Guidelines for Responsible AI": [
+        (
+            "A team deploys an AI system that downgrades certain demographic groups in loan eligibility decisions. This is a classic example of:",
+            ["Algorithmic bias", "Model drift", "Feature scaling", "Overfitting"],
+            0,
+            "Algorithmic bias occurs when the system systematically disadvantages specific groups."),
+        (
+            "A lender wants to understand why a model rejected a loan application. Which responsible AI pillar is most relevant?",
+            ["Explainability", "Latency optimization", "Data compression", "Prompt tuning"],
+            0,
+            "Explainability helps stakeholders understand and justify model decisions."),
+        (
+            "A model used in hiring has disparities across protected groups. The best next step is to:",
+            ["Evaluate fairness metrics and review training data for representation and proxy features", "Immediately retrain with more data and ignore fairness", "Delete the model and replace it with a random classifier", "Disable all logging to reduce risk"],
+            0,
+            "Responsible AI requires fairness review, data inspection, and mitigation of bias."),
+        (
+            "A company is preparing a high-impact AI system for production. The most important governance step is:",
+            ["Conduct an impact assessment and define accountability and monitoring requirements", "Deploy the system without documentation to move faster", "Use only public benchmarks and ignore internal review", "Require no human oversight for critical decisions"],
+            0,
+            "Governance and impact assessment reduce risk before deployment."),
+        (
+            "An organization wants to reduce harmful outputs from a generative model in a customer-facing application. Which capability is most directly aligned with this requirement?",
+            ["Guardrails and content filtering", "Hyperparameter tuning only", "Model quantization alone", "Elastic load balancing"],
+            0,
+            "Guardrails help prevent unsafe, harmful, or sensitive output."),
+        (
+            "A model used for customer support performs well initially but degrades after a change in customer language patterns. This is best described as:",
+            ["Model drift", "Gradient descent failure", "Prompt engineering issue", "Data serialization bug"],
+            0,
+            "Model drift is a performance shift caused by changes in input data distribution over time."),
+    ],
+    "Domain 5: Security, Compliance, and Operations": [
+        (
+            "A team is setting up AWS Bedrock for production and needs strong auditability for all API calls. Which AWS service should be enabled?",
+            ["AWS CloudTrail", "Amazon SES", "Amazon Athena", "Amazon QuickSight"],
+            0,
+            "CloudTrail logs and audits AWS API activity for security and compliance review."),
+        (
+            "A company wants to restrict Bedrock access to private network paths and control traffic. The most appropriate design is:",
+            ["Use VPC endpoints and security groups", "Expose the model publicly on the internet", "Use only a public S3 bucket", "Disable IAM policies"],
+            0,
+            "Private networking with VPC endpoints reduces exposure and supports secure access patterns."),
+        (
+            "A security team wants to protect secrets used by an AI application. The correct AWS service is:",
+            ["AWS Secrets Manager", "Amazon CloudWatch Logs", "Amazon GuardDuty", "Amazon S3 Glacier"],
+            0,
+            "Secrets Manager is built for storing and rotating sensitive credentials securely."),
+        (
+            "A business requires encryption with explicit ownership and rotation control for keys used in AI services. The best option is:",
+            ["AWS KMS customer-managed keys", "Default AWS-managed keys only", "Public key sharing", "No encryption"],
+            0,
+            "Customer-managed keys provide a stronger control model for encryption and key lifecycle operations."),
+        (
+            "An application expects bursts of usage but needs to prevent abuse and unnecessary cost. The right operational control is:",
+            ["Rate limiting and quotas", "Deleting all CloudWatch alarms", "Allowing infinite public access", "Disabling IAM"],
+            0,
+            "Rate limits and quotas protect the system from abuse and resource exhaustion."),
+        (
+            "A production deployment must recover quickly after a regional outage. The best strategy is:",
+            ["Multi-region redundancy and automated failover", "Single-region deployment with no backup", "Manual recovery only after outage", "Disable logging until recovery"],
+            0,
+            "Disaster recovery depends on redundant capacity and tested failover procedures."),
+    ],
+}
+
+
+def build_advanced_question_bank():
+    """Create a richer exam-style bank with domain-specific harder scenarios."""
+    advanced_bank = {}
+    for domain_name, questions in DOMAINS_DATA.items():
+        generated = []
+        for q_text, opts, correct_idx, explanation in questions:
+            generated.append({
+                "question": q_text,
+                "options": opts,
+                "correct_idx": correct_idx,
+                "explanation": explanation,
+                "difficulty": "core",
+                "domain": domain_name,
+            })
+
+        for q_text, opts, correct_idx, explanation in HARDER_QUESTION_TEMPLATES.get(domain_name, []):
+            generated.append({
+                "question": q_text,
+                "options": opts,
+                "correct_idx": correct_idx,
+                "explanation": explanation,
+                "difficulty": "hard",
+                "domain": domain_name,
+            })
+
+        advanced_bank[domain_name] = generated
+
+    return advanced_bank
+
+
 @st.cache_data
 def prepare_questions():
-    """Prepare all questions with shuffled options"""
+    """Prepare a larger AWS-style question bank with shuffled options and harder scenario-based questions."""
     all_questions = {}
-    for domain_name, questions in DOMAINS_DATA.items():
+    base_bank = build_advanced_question_bank()
+
+    for domain_name, questions in base_bank.items():
         domain_list = []
-        for q_text, opts, correct_idx, explanation in questions:
-            # Shuffle options while tracking correct answer
+        for q in questions:
+            opts = q["options"]
+            correct_idx = q["correct_idx"]
             options_with_indices = list(enumerate(opts))
-            random.seed(hash(q_text))  # Consistent seed per question
+            random.seed(hash(f"{domain_name}:{q['question']}"))
             random.shuffle(options_with_indices)
-            
+
             shuffled_options = [opt for _, opt in options_with_indices]
             new_correct_idx = next(idx for idx, (orig_idx, _) in enumerate(options_with_indices) if orig_idx == correct_idx)
-            
+
             domain_list.append({
-                "question": q_text,
+                "question": q["question"],
                 "options": shuffled_options,
                 "correct_idx": new_correct_idx,
-                "explanation": explanation
+                "explanation": q["explanation"],
+                "difficulty": q.get("difficulty", "core"),
+                "domain": domain_name,
             })
+
         all_questions[domain_name] = domain_list
+
     return all_questions
 
 questions_bank = prepare_questions()
@@ -379,37 +582,103 @@ if "quiz_total_correct" not in st.session_state:
 if "quiz_answered" not in st.session_state:
     st.session_state.quiz_answered = {}  # Track which questions answered
 
+if "exam_started_at" not in st.session_state:
+    st.session_state.exam_started_at = None
+
+if "exam_duration_seconds" not in st.session_state:
+    st.session_state.exam_duration_seconds = 90 * 60
+
+if "exam_time_remaining" not in st.session_state:
+    st.session_state.exam_time_remaining = st.session_state.exam_duration_seconds
+
+if "exam_submitted" not in st.session_state:
+    st.session_state.exam_submitted = False
+
+
+def start_full_exam():
+    """Reset and start a full timed exam."""
+    st.session_state.quiz_all_questions = create_mixed_quiz()
+    st.session_state.quiz_total_correct = 0
+    st.session_state.quiz_answered = {}
+    st.session_state.q_index = 0
+    st.session_state.exam_started_at = time.monotonic()
+    st.session_state.exam_submitted = False
+    st.session_state.exam_time_remaining = st.session_state.exam_duration_seconds
+
+
+def get_exam_time_remaining():
+    """Return remaining exam time in seconds, auto-updating from start timestamp."""
+    if st.session_state.get("exam_started_at") is None:
+        return st.session_state.get("exam_time_remaining", st.session_state.exam_duration_seconds)
+
+    if st.session_state.get("exam_submitted"):
+        return st.session_state.get("exam_time_remaining", 0)
+
+    elapsed = int(time.monotonic() - st.session_state.exam_started_at)
+    remaining = max(0, st.session_state.exam_duration_seconds - elapsed)
+    st.session_state.exam_time_remaining = remaining
+    return remaining
+
+
+def submit_full_exam():
+    """Finalize the exam and lock the quiz."""
+    st.session_state.exam_submitted = True
+    st.session_state.exam_time_remaining = 0
+
 
 # Helper function to create mixed quiz questions from all domains
+# Real AWS exam style: 65 questions total, sampled across all five domains
+# The ratios below approximate the AWS AI Practitioner blueprint more closely than pure random mixing.
 def create_mixed_quiz():
-    """Create a shuffled quiz with 65 random questions from all domains (like real AWS exam)"""
-    all_quiz_questions = []
-    
+    """Create a realistic 65-question mixed exam across all domains."""
+    domain_weights = {
+        "Domain 1: Fundamentals of AI and ML": 11,
+        "Domain 2: Fundamentals of Generative AI": 11,
+        "Domain 3: Applications of AWS AI Services": 18,
+        "Domain 4: Guidelines for Responsible AI": 10,
+        "Domain 5: Security, Compliance, and Operations": 15,
+    }
+
+    exam_questions = []
     for domain_name, questions in questions_bank.items():
-        for q in questions:
+        weight = domain_weights.get(domain_name, 0)
+        chosen = random.sample(questions, min(len(questions), weight))
+        for q in chosen:
             q_with_domain = q.copy()
-            q_with_domain["domain"] = domain_name  # Track which domain this came from
-            all_quiz_questions.append(q_with_domain)
-    
-    # Shuffle the questions randomly
-    random.shuffle(all_quiz_questions)
-    
-    # Return only 65 questions (like actual AWS exam)
-    return all_quiz_questions[:65]
+            q_with_domain["domain"] = domain_name
+            exam_questions.append(q_with_domain)
+
+    random.shuffle(exam_questions)
+
+    if len(exam_questions) > 65:
+        exam_questions = exam_questions[:65]
+    elif len(exam_questions) < 65:
+        for domain_name, questions in questions_bank.items():
+            if len(exam_questions) >= 65:
+                break
+            for q in questions:
+                if len(exam_questions) >= 65:
+                    break
+                q_with_domain = q.copy()
+                q_with_domain["domain"] = domain_name
+                exam_questions.append(q_with_domain)
+        random.shuffle(exam_questions)
+        exam_questions = exam_questions[:65]
+
+    return exam_questions
 
 
 # Callback functions for sidebar changes
 def update_domain():
     st.session_state.q_index = 0
 
+
 def update_mode():
-    st.session_state.q_index = 0  # Reset question index when mode changes
-    
-    # If switching to Quiz Mode, generate mixed questions
-    if st.session_state.quiz_mode:
-        st.session_state.quiz_all_questions = create_mixed_quiz()
-        st.session_state.quiz_total_correct = 0
-        st.session_state.quiz_answered = {}
+    st.session_state.q_index = 0
+
+    if st.session_state.get("quiz_mode") is True:
+        start_full_exam()
+
 
 # 6. UI Layout & Sidebar Navigation
 st.title("☁️ AWS Certified AI Practitioner Exam Simulator")
@@ -418,30 +687,26 @@ st.caption("Enhanced Learning Platform • 100+ Questions per Domain • Real Ex
 # Sidebar Controls
 with st.sidebar:
     st.header("📋 Navigation & Settings")
-    
-    # Mode Selection with callback
+
     mode = st.radio(
-        "Select Mode:", 
-        ["📖 Practice Mode", "🎯 Quiz Mode", "📊 Performance"], 
+        "Select Mode:",
+        ["📖 Practice Mode", "🎯 Quiz Mode", "📊 Performance"],
         index=0,
-        on_change=update_mode
+        on_change=update_mode,
     )
-    
-    # Store mode in session state
+
     if mode == "📖 Practice Mode":
         st.session_state.quiz_mode = False
     elif mode == "🎯 Quiz Mode":
         st.session_state.quiz_mode = True
-        # Initialize mixed quiz if not already done
-        if not st.session_state.quiz_all_questions:
-            st.session_state.quiz_all_questions = create_mixed_quiz()
-    else:  # Performance Mode
+        if not st.session_state.quiz_all_questions or st.session_state.get("exam_started_at") is None:
+            start_full_exam()
+    else:
         st.session_state.quiz_mode = None
-    
+
     st.divider()
-    
-    # Domain Selection (hidden in Quiz Mode)
-    if st.session_state.quiz_mode is not True:  # Show domain selector only in Practice and Performance modes
+
+    if st.session_state.quiz_mode is not True:
         domain_list = list(questions_bank.keys())
         current_idx = domain_list.index(st.session_state.current_domain) if st.session_state.current_domain in domain_list else 0
 
@@ -449,47 +714,47 @@ with st.sidebar:
             "Select Domain:",
             domain_list,
             index=current_idx,
-            on_change=update_domain
+            on_change=update_domain,
         )
-        
-        # Update session state if selection changed
+
         st.session_state.current_domain = selected_domain
-        
+
         st.divider()
-        
-        # Display stats
+
         num_questions = len(questions_bank[selected_domain])
         st.metric("Questions in Domain", num_questions)
-        
+
         if selected_domain in st.session_state.quiz_scores:
             score = st.session_state.quiz_scores[selected_domain]
             st.metric("Quiz Score", f"{score['correct']}/{score['total']}", f"{int(score['correct']/score['total']*100)}%")
-    else:  # Quiz Mode
+    else:
         st.write("### 🎯 Full Exam Quiz")
         st.write("Questions from **all 5 domains** mixed together")
         st.divider()
         st.metric("Total Questions", 65)
+        remaining = get_exam_time_remaining()
+        minutes, seconds = divmod(remaining, 60)
+        st.metric("Time Remaining", f"{minutes:02d}:{seconds:02d}")
         st.metric("Current Score", f"{st.session_state.quiz_total_correct}/{len(st.session_state.quiz_all_questions)}")
 
 # Check if Performance Mode
-if st.session_state.quiz_mode is None:  # Performance Mode
+if st.session_state.quiz_mode is None:
     st.subheader("📊 Performance Dashboard")
-    
+
     if not st.session_state.quiz_scores:
         st.info("📝 No quiz scores yet. Take quizzes to see your performance!")
     else:
         st.write("### Your Quiz Results:")
-        
+
         total_correct = 0
         total_questions = 0
-        
+
         for domain in st.session_state.quiz_scores:
             score_data = st.session_state.quiz_scores[domain]
             correct = score_data['correct']
             total = score_data['total']
             percentage = int((correct / total) * 100)
-            
-            # Create progress bar for each domain
+
             col1, col2, col3 = st.columns([2, 1, 1])
             with col1:
                 st.write(f"**{domain.split(':')[1].strip()}**")
@@ -497,13 +762,12 @@ if st.session_state.quiz_mode is None:  # Performance Mode
                 st.write(f"{correct}/{total}")
             with col3:
                 st.write(f"{percentage}% ✓" if percentage >= 75 else f"{percentage}%")
-            
+
             st.progress(percentage / 100)
-            
+
             total_correct += correct
             total_questions += total
-        
-        # Overall stats
+
         st.divider()
         overall_percentage = int((total_correct / total_questions) * 100) if total_questions > 0 else 0
         col1, col2, col3 = st.columns(3)
@@ -513,7 +777,7 @@ if st.session_state.quiz_mode is None:  # Performance Mode
             st.metric("Total Questions", total_questions)
         with col3:
             st.metric("Overall Score", f"{overall_percentage}%")
-        
+
         if overall_percentage >= 75:
             st.success("🎉 Great job! You're ready for the exam!")
         elif overall_percentage >= 70:
@@ -521,73 +785,61 @@ if st.session_state.quiz_mode is None:  # Performance Mode
         else:
             st.warning("💪 Keep practicing to improve your score!")
 
-else:  # Practice or Quiz Mode
-    # Handle Practice Mode (single domain)
-    if st.session_state.quiz_mode is False:  # Practice Mode
-        # Load current question data from single domain
+else:
+    if st.session_state.quiz_mode is False:
         selected_domain = st.session_state.current_domain
         q_index = st.session_state.q_index
         num_questions = len(questions_bank[selected_domain])
-        
+
         if q_index >= num_questions:
             st.session_state.q_index = 0
             q_index = 0
-        
+
         current_q = questions_bank[selected_domain][q_index]
-        
-        # Main Content Area
+
         st.subheader(f"{selected_domain}")
-        
-        # Progress indicator
+
         col_progress = st.columns([3, 1])
         with col_progress[0]:
             st.progress((q_index + 1) / num_questions)
         with col_progress[1]:
             st.write(f"**{q_index + 1}/{num_questions}**")
-        
-        # Question Display
+
         st.markdown(f"### {current_q['question']}")
-        
-        # Radio choices for the user
+
         user_choice = st.radio(
             "Select the best answer:",
             current_q['options'],
             index=None,
-            key=f"radio_{selected_domain}_{q_index}"
+            key=f"radio_{selected_domain}_{q_index}",
         )
-        
-        # Answer Feedback
+
         if user_choice is not None:
             selected_idx = current_q['options'].index(user_choice)
             is_correct = selected_idx == current_q['correct_idx']
-            
+
             if is_correct:
                 st.success("🎉 **Correct!** Great job!")
             else:
                 correct_answer_text = current_q['options'][current_q['correct_idx']]
                 st.error(f"❌ **Incorrect.** The correct answer is: **{correct_answer_text}**")
-            
+
             st.info(f"💡 **Explanation:** {current_q['explanation']}")
-        
+
         st.divider()
-        
-        # Navigation Buttons for Practice Mode
+
         col1, col2, col3 = st.columns([1, 2, 1])
-        
         with col1:
             if st.button("⬅️ Previous", use_container_width=True, disabled=(q_index == 0), key="prev_practice"):
                 st.session_state.q_index -= 1
                 st.rerun()
-        
         with col2:
-            st.write("")  # Spacer
-        
+            st.write("")
         with col3:
             if st.button("Next ➡️", use_container_width=True, disabled=(q_index == num_questions - 1), key="next_practice"):
                 st.session_state.q_index += 1
                 st.rerun()
-        
-        # Quick Navigation
+
         st.write("---")
         st.write("**Quick Jump:**")
         col_jump = st.columns(5)
@@ -599,85 +851,102 @@ else:  # Practice or Quiz Mode
                     st.session_state.current_domain = domains[i]
                     st.session_state.q_index = 0
                     st.rerun()
-    
-    else:  # Quiz Mode - Mixed questions from all domains
+
+    else:
         q_index = st.session_state.q_index
         all_questions = st.session_state.quiz_all_questions
-        
-        # Handle case where questions haven't been created yet
+
         if not all_questions:
             all_questions = create_mixed_quiz()
             st.session_state.quiz_all_questions = all_questions
-        
+
+        if st.session_state.get("exam_submitted"):
+            st.subheader("✅ Exam Submitted")
+            final_score = st.session_state.quiz_total_correct
+            total_questions = len(all_questions)
+            final_pct = int((final_score / total_questions) * 100) if total_questions else 0
+            st.success(f"Your final score: **{final_score}/{total_questions}** ({final_pct}%)")
+            st.info("The exam timer has expired or you submitted the exam. Your results are locked in.")
+            st.stop()
+
+        remaining = get_exam_time_remaining()
+        if remaining <= 0 and not st.session_state.get("exam_submitted"):
+            submit_full_exam()
+            st.rerun()
+
         num_questions = len(all_questions)
-        
+
         if q_index >= num_questions:
             st.session_state.q_index = 0
             q_index = 0
-        
+
         current_q = all_questions[q_index]
-        
-        # Main Content Area for Mixed Quiz
-        st.subheader(f"🎯 Full Exam Quiz - Mixed Questions")
+
+        st.subheader("🎯 Full Exam Quiz - Mixed Questions")
         st.caption(f"from {current_q.get('domain', 'Unknown Domain')}")
-        
-        # Progress indicator
+
         col_progress = st.columns([3, 1])
         with col_progress[0]:
             st.progress((q_index + 1) / num_questions)
         with col_progress[1]:
             st.write(f"**{q_index + 1}/{num_questions}**")
-        
-        # Question Display
+
+        remaining = get_exam_time_remaining()
+        minutes, seconds = divmod(remaining, 60)
+        st.caption(f"⏱️ Time left: {minutes:02d}:{seconds:02d}")
+
         st.markdown(f"### {current_q['question']}")
-        
-        # Radio choices for the user
+
         user_choice = st.radio(
             "Select the best answer:",
             current_q['options'],
             index=None,
-            key=f"radio_quiz_{q_index}"
+            key=f"radio_quiz_{q_index}",
         )
-        
-        # Answer Feedback
+
         if user_choice is not None:
             selected_idx = current_q['options'].index(user_choice)
             is_correct = selected_idx == current_q['correct_idx']
-            
-            # Track answer in quiz mode
+
             if q_index not in st.session_state.quiz_answered:
                 st.session_state.quiz_answered[q_index] = is_correct
                 if is_correct:
                     st.session_state.quiz_total_correct += 1
-            
+
             if is_correct:
                 st.success("🎉 **Correct!** Great job!")
             else:
                 correct_answer_text = current_q['options'][current_q['correct_idx']]
                 st.error(f"❌ **Incorrect.** The correct answer is: **{correct_answer_text}**")
-            
+
             st.info(f"💡 **Explanation:** {current_q['explanation']}")
-        
+
         st.divider()
-        
-        # Navigation Buttons for Quiz Mode
+
         col1, col2, col3 = st.columns([1, 2, 1])
-        
         with col1:
             if st.button("⬅️ Previous", use_container_width=True, disabled=(q_index == 0), key="prev_quiz"):
                 st.session_state.q_index -= 1
                 st.rerun()
-        
         with col2:
-            # Show current score in center
-            st.write(f"Score: **{st.session_state.quiz_total_correct}/{q_index}**")
-        
+            st.write(f"Score: **{st.session_state.quiz_total_correct}/{q_index + 1}")
         with col3:
-            if st.button("Next ➡️", use_container_width=True, disabled=(q_index == num_questions - 1), key="next_quiz"):
+            if st.button("Submit Exam", use_container_width=True, key="submit_exam"):
+                submit_full_exam()
+                st.rerun()
+
+        if q_index == num_questions - 1:
+            st.write("---")
+            st.success(f"✅ This is the final question. Submit the exam to finish and lock in your score.")
+            if st.button("Finish Exam Now", key="finish_exam_now"):
+                submit_full_exam()
+                st.rerun()
+
+        if q_index < num_questions - 1:
+            if st.button("Next ➡️", use_container_width=True, key="next_quiz"):
                 st.session_state.q_index += 1
                 st.rerun()
-        
-        # Show summary when finished
+
         if q_index == num_questions - 1:
             st.write("---")
             st.success(f"✅ Quiz Complete! Your Score: **{st.session_state.quiz_total_correct}/{num_questions}** ({int(st.session_state.quiz_total_correct/num_questions*100)}%)")
